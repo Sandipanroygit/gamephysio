@@ -986,7 +986,12 @@
 
       const bucketHeight = Math.max(220, Math.floor(height * 0.32));
       const topY = toWorldY(height * 0.71);
-      const lowY = toWorldY(height * 0.80);
+      // Raise lower-row buckets so labels remain visible near the bottom edge.
+      const lowY = toWorldY(height * (level >= 3 ? 0.74 : 0.76));
+      // Keep clearer horizontal gaps for the 3-color row in Level 3.
+      const blueX = toWorldX(width * (level >= 3 ? 0.30 : 0.37));
+      const greenX = toWorldX(width * 0.50);
+      const redX = toWorldX(width * (level >= 3 ? 0.70 : 0.63));
       const rTop = Math.max(90, Math.floor(width * 0.08));
       const rBottom = Math.max(74, Math.floor(width * 0.065));
 
@@ -1013,7 +1018,7 @@
         },
         blue: {
           name: "Blue Bucket",
-          cx: toWorldX(width * 0.37),
+          cx: blueX,
           cy: lowY,
           radiusTop: rTop,
           radiusBottom: rBottom,
@@ -1023,7 +1028,7 @@
         },
         red: {
           name: "Red Bucket",
-          cx: toWorldX(width * 0.63),
+          cx: redX,
           cy: lowY,
           radiusTop: rTop,
           radiusBottom: rBottom,
@@ -1033,7 +1038,7 @@
         },
         green: {
           name: "Green Bucket",
-          cx: toWorldX(width * 0.5),
+          cx: greenX,
           cy: lowY,
           radiusTop: rTop,
           radiusBottom: rBottom,
