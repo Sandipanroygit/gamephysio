@@ -349,6 +349,7 @@
             <select id="startLevelSelect">
               <option value="1" selected>Level 1</option>
               <option value="2">Level 2</option>
+              <option value="3">Level 3</option>
             </select>
           </div>
           <div class="menuField" style="grid-column: 1 / -1;">
@@ -361,7 +362,8 @@
         <div id="aboutText">
           Open hand to arm, close hand to grab a ball, open hand to release.<br>
           Level 1: move balls from Mixed bucket to Empty bucket.<br>
-          Level 2: listen to prompt ("Take blue ball" / "Take red ball"), pick matching color from Mixed bucket, and drop into matching color bucket.
+          Level 2: listen to prompt ("Take blue ball" / "Take red ball"), pick matching color from Mixed bucket, and drop into matching color bucket.<br>
+          Level 3: same sorting flow with three colors (blue, red, green) and three matching buckets.
         </div>
       </section>
     </div>
@@ -373,6 +375,7 @@
 
     const LEVEL1_TARGET = 8;
     const LEVEL2_TARGET = 12;
+    const LEVEL3_TARGET = 15;
     const GAME_TOTAL_MS = 300000;
     const BALL_RADIUS = 21;
     const HAND_SIZE = 120;
@@ -733,7 +736,8 @@
     }
 
     function applyMenuSettings() {
-      selectedStartLevel = Number(startLevelSelect.value) === 2 ? 2 : 1;
+      const lv = Number(startLevelSelect.value);
+      selectedStartLevel = [1, 2, 3].includes(lv) ? lv : 1;
       handSmoothing = Number(sensitivityRange.value);
       sensitivityValue.textContent = handSmoothing.toFixed(2);
       musicEnabled = musicToggle.checked;
@@ -760,8 +764,10 @@
       setupLayout();
       if (level === 1) {
         seedLevel1();
-      } else {
+      } else if (level === 2) {
         seedLevel2();
+      } else {
+        seedLevel3();
       }
       startTime = performance.now();
       menuOverlay.style.display = "none";
@@ -846,7 +852,9 @@
       levelLine.textContent = `Level: ${level}`;
       goalLine.textContent = level === 1
         ? `Goal: Move ${LEVEL1_TARGET} balls to empty bucket`
-        : `Goal: ${LEVEL2_TARGET} correct sorts by voice`;
+        : level === 2
+          ? `Goal: ${LEVEL2_TARGET} correct sorts by voice`
+          : `Goal: ${LEVEL3_TARGET} correct sorts by voice`;
       promptLine.textContent = `Prompt: ${prompt}`;
       scoreLine.textContent = `Score: ${score}`;
     }
@@ -859,7 +867,9 @@
     }
 
     function levelTargets() {
-      return level === 1 ? ["source", "target"] : ["source", "blue", "red"];
+      if (level === 1) return ["source", "target"];
+      if (level === 2) return ["source", "blue", "red"];
+      return ["source", "blue", "red", "green"];
     }
 
     function renderBucketLabels() {
@@ -869,7 +879,8 @@
         source: "Mixed",
         target: "Empty",
         blue: "Blue",
-        red: "Red"
+        red: "Red",
+        green: "Green"
       };
       for (const n of active) {
         if (!buckets[n]) continue;
@@ -1019,11 +1030,21 @@
           innerRadiusTop: rTop - 16,
           innerRadiusBottom: rBottom - 14,
           height: bucketHeight
+        },
+        green: {
+          name: "Green Bucket",
+          cx: toWorldX(width * 0.5),
+          cy: lowY,
+          radiusTop: rTop,
+          radiusBottom: rBottom,
+          innerRadiusTop: rTop - 16,
+          innerRadiusBottom: rBottom - 14,
+          height: bucketHeight
         }
       };
 
       const active = levelTargets();
-      const tints = { source: 0x7ac3ff, target: 0x8ff5dd, blue: 0x6da8ff, red: 0xff8383 };
+      const tints = { source: 0x7ac3ff, target: 0x8ff5dd, blue: 0x6da8ff, red: 0xff8383, green: 0x7fe08d };
       for (const n of active) {
         buckets[n].mesh = buildBucketVisual(buckets[n], tints[n]);
         scene.add(buckets[n].mesh);
@@ -1055,7 +1076,7 @@
       const mesh = new THREE.Mesh(
         new THREE.SphereGeometry(BALL_RADIUS, 28, 28),
         new THREE.MeshStandardMaterial({
-          color: color === "blue" ? 0x4a9dff : 0xff5d5d,
+          color: color === "blue" ? 0x4a9dff : color === "red" ? 0xff5d5d : 0x59c96a,
           roughness: 0.28,
           metalness: 0.12
         })
@@ -1092,8 +1113,9 @@
     }
 
     function nextInstruction() {
-      instructionColor = Math.random() < 0.5 ? "blue" : "red";
-      const text = instructionColor === "blue" ? "Take blue ball" : "Take red ball";
+      const options = level >= 3 ? ["blue", "red", "green"] : ["blue", "red"];
+      instructionColor = options[Math.floor(Math.random() * options.length)];
+      const text = `Take ${instructionColor} ball`;
       updateHud(text);
       speak(text);
     }
@@ -1103,6 +1125,16 @@
       balls.length = 0;
       for (let i = 0; i < 14; i += 1) {
         balls.push(spawnBall("source", Math.random() < 0.5 ? "blue" : "red"));
+      }
+      nextInstruction();
+    }
+
+    function seedLevel3() {
+      for (const b of balls) scene.remove(b.mesh);
+      balls.length = 0;
+      const palette = ["blue", "red", "green"];
+      for (let i = 0; i < 18; i += 1) {
+        balls.push(spawnBall("source", palette[Math.floor(Math.random() * palette.length)]));
       }
       nextInstruction();
     }
@@ -1496,16 +1528,17 @@
         }
       } else {
         const chosen = bucketByPoint(sx, sy, targets) || nearestBucketByX(sx, targets);
-        if (chosen === "blue" || chosen === "red") {
+        const colorTargets = level === 2 ? ["blue", "red"] : ["blue", "red", "green"];
+        if (colorTargets.includes(chosen)) {
           if (ball.color === instructionColor && chosen === instructionColor) {
             releaseBallFromHand(ball, chosen, releaseX, releaseY, targets);
             if (!ball.placed) {
-              ball.pendingSuccess = { expectedBucket: instructionColor, mode: "level2" };
+              ball.pendingSuccess = { expectedBucket: instructionColor, mode: level === 2 ? "level2" : "level3" };
             }
           } else {
             ball.placed = false;
             releaseBallFromHand(ball, chosen, releaseX, releaseY, targets);
-            updateHud(`Wrong match. ${instructionColor === "blue" ? "Take blue ball" : "Take red ball"}`);
+            updateHud(`Wrong match. Take ${instructionColor} ball`);
             speak("Try again");
           }
         } else {
@@ -1535,6 +1568,10 @@
           setTimeout(() => {
             if (!gameOver && level === 2) nextInstruction();
           }, 560);
+        } else if (mode === "level3" && score < LEVEL3_TARGET) {
+          setTimeout(() => {
+            if (!gameOver && level === 3) nextInstruction();
+          }, 560);
         }
       }
     }
@@ -1548,6 +1585,13 @@
         setupLayout();
         seedLevel2();
       } else if (level === 2 && score >= LEVEL2_TARGET) {
+        level = 3;
+        score = 0;
+        heldBallId = null;
+        catchArmed = false;
+        setupLayout();
+        seedLevel3();
+      } else if (level === 3 && score >= LEVEL3_TARGET) {
         gameOver = true;
         updateHud("Activity complete");
       }
