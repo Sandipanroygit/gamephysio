@@ -43,6 +43,59 @@ assets/
 python src/main.py
 ```
 
+## Run in browser on localhost
+
+To host the game directly in your browser:
+
+```bash
+npm run dev
+```
+
+Then open:
+
+```text
+http://127.0.0.1:8000
+```
+
+The game runs inside the browser canvas (not as a separate pygame window).
+Allow camera permission when prompted.
+
+If needed, you can still run the server directly:
+
+```bash
+python localhost_server.py
+```
+
+## Ball Sorting Activity (Browser)
+
+This browser version is now structured as:
+
+- Level 1: Move balls from a mixed/source box into an empty box.
+- Level 2: Sort mixed balls by voice instruction:
+  - "Take blue ball"
+  - "Take red ball"
+  - Place the correct color in the matching color box.
+
+Hand tracking and grabbing flow remains the same:
+- Open hand over a ball to arm a catch
+- Close hand to grab
+- Open hand to release/drop
+
+Additional behavior:
+- Balls do not move on their own.
+- Balls settle by gravity inside each bucket.
+- Bucket collision uses `bucket.png` non-transparent pixels as physical boundaries.
+
+## Browser Asset Sources (PNG)
+
+The browser UI uses PNG assets downloaded from Twemoji:
+
+- Box icon: `https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f4e6.png`
+- Red ball: `https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f534.png`
+- Blue ball: `https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f535.png`
+- Cartoon environment (SVG): `https://commons.wikimedia.org/wiki/Special:FilePath/Cartoon%20landscape.svg`
+- Active bucket mask in game: `output-onlinetools (1).png` (project root)
+
 2. Game Controls:
 
 - Use your hand in front of the webcam to control the game

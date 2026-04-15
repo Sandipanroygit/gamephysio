@@ -1,0 +1,1740 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ball Sorting Activity 3D</title>
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      background: #9fd8ff;
+    }
+    #app {
+      position: fixed;
+      inset: 0;
+    }
+    #camera {
+      position: fixed;
+      right: 14px;
+      top: 14px;
+      width: 240px;
+      height: 135px;
+      border-radius: 10px;
+      border: 2px solid rgba(255, 255, 255, 0.35);
+      object-fit: cover;
+      transform: scaleX(-1);
+      background: #03070c;
+      z-index: 10;
+    }
+    #handSprite {
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: 120px;
+      height: 120px;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      z-index: 12;
+      user-select: none;
+      -webkit-user-drag: none;
+      display: none;
+    }
+    #hud {
+      position: fixed;
+      left: 14px;
+      top: 14px;
+      width: min(380px, 92vw);
+      background: linear-gradient(165deg, rgba(255, 250, 208, 0.92), rgba(171, 231, 255, 0.9));
+      border: 2px solid rgba(14, 64, 102, 0.25);
+      border-radius: 18px;
+      color: #08263b;
+      padding: 12px 14px 14px;
+      box-shadow: 0 16px 34px rgba(8, 50, 78, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.4);
+      z-index: 11;
+    }
+    #hudTitle {
+      margin: 0 0 8px;
+      font-size: 20px;
+      line-height: 1;
+      letter-spacing: 0.6px;
+      font-weight: 900;
+      text-transform: uppercase;
+      color: #05304f;
+      text-shadow: 0 2px 0 rgba(255, 255, 255, 0.45);
+    }
+    #hudTopRow {
+      display: grid;
+      grid-template-columns: 1fr 1fr auto;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .statChip {
+      padding: 8px 10px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.66);
+      border: 1px solid rgba(9, 70, 112, 0.2);
+      font-weight: 800;
+      color: #0b3655;
+    }
+    #backBtn {
+      border: 0;
+      border-radius: 12px;
+      padding: 8px 12px;
+      font-weight: 900;
+      cursor: pointer;
+      background: linear-gradient(145deg, #ffd76f, #ffb057);
+      color: #5a2f06;
+      box-shadow: inset 0 0 0 1px rgba(120, 68, 16, 0.2);
+    }
+    #timerLine {
+      font-size: 18px;
+      text-align: center;
+      margin: 4px 0 8px;
+      font-weight: 900;
+      letter-spacing: 0.4px;
+      color: #073457;
+    }
+    #timeBar {
+      height: 10px;
+      background: rgba(255, 255, 255, 0.55);
+      border: 1px solid rgba(9, 70, 112, 0.2);
+      border-radius: 999px;
+      overflow: hidden;
+      margin: 2px 0 10px;
+    }
+    #timeBarFill {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, #09b6ff, #29e07f);
+      transition: width 120ms linear;
+    }
+    #goalLine, #promptLine {
+      margin: 4px 0;
+      padding: 6px 8px;
+      border-radius: 9px;
+      background: rgba(255, 255, 255, 0.52);
+      border: 1px solid rgba(9, 70, 112, 0.15);
+      font-size: 14px;
+      color: #0a334f;
+    }
+    #status {
+      position: fixed;
+      left: 14px;
+      bottom: 14px;
+      max-width: min(90vw, 750px);
+      background: rgba(255, 255, 255, 0.78);
+      border: 1px solid rgba(18, 62, 102, 0.2);
+      border-radius: 10px;
+      color: #0f2b44;
+      padding: 8px 12px;
+      z-index: 11;
+    }
+    #successPopup {
+      position: fixed;
+      left: 50%;
+      top: 24%;
+      transform: translate(-50%, -50%) scale(0.72);
+      padding: 18px 30px;
+      border-radius: 18px;
+      border: 2px solid rgba(8, 58, 93, 0.36);
+      background: linear-gradient(150deg, rgba(255, 243, 140, 0.98), rgba(95, 239, 168, 0.98));
+      color: #073757;
+      font-size: clamp(30px, 4.6vw, 46px);
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      text-shadow: 0 2px 0 rgba(255, 255, 255, 0.55), 0 0 18px rgba(255, 255, 255, 0.45);
+      box-shadow: 0 20px 44px rgba(5, 64, 94, 0.42), 0 0 24px rgba(255, 246, 175, 0.58);
+      opacity: 0;
+      pointer-events: none;
+      z-index: 26;
+      overflow: hidden;
+    }
+    #successPopup::before {
+      content: "";
+      position: absolute;
+      inset: -30%;
+      background: radial-gradient(circle, rgba(255,255,255,0.48), rgba(255,255,255,0));
+      transform: scale(0.7);
+      opacity: 0;
+    }
+    #successPopup.active {
+      animation: successPop 1280ms cubic-bezier(.17,.84,.27,1.15);
+    }
+    #successPopup.active::before {
+      animation: popHalo 1280ms ease-out;
+    }
+    #successPopup.fail {
+      background: linear-gradient(150deg, rgba(255, 170, 122, 0.98), rgba(255, 225, 108, 0.98));
+      color: #5a2f0a;
+      box-shadow: 0 20px 44px rgba(92, 44, 12, 0.4), 0 0 20px rgba(255, 204, 131, 0.5);
+    }
+    @keyframes successPop {
+      0%   { opacity: 0; transform: translate(-50%, -44%) scale(0.6); }
+      20%  { opacity: 1; transform: translate(-50%, -50%) scale(1.14); }
+      42%  { opacity: 1; transform: translate(-50%, -50%) scale(1.0); }
+      74%  { opacity: 1; transform: translate(-50%, -52%) scale(1.02); }
+      100% { opacity: 0; transform: translate(-50%, -59%) scale(0.86); }
+    }
+    @keyframes popHalo {
+      0%   { opacity: 0.2; transform: scale(0.6); }
+      35%  { opacity: 0.52; transform: scale(1.0); }
+      100% { opacity: 0; transform: scale(1.28); }
+    }
+    #bucketLabels {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 13;
+    }
+    .bucketLabel {
+      position: fixed;
+      transform: translate(-50%, -50%);
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(8, 60, 96, 0.25);
+      background: rgba(255, 255, 255, 0.82);
+      color: #0d3f61;
+      font-weight: 900;
+      font-size: 13px;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+      box-shadow: 0 6px 16px rgba(0, 48, 80, 0.18);
+      white-space: nowrap;
+    }
+    #menuOverlay {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(6, 20, 34, 0.42);
+      backdrop-filter: blur(3px);
+      z-index: 30;
+    }
+    #menuCard {
+      width: min(560px, 92vw);
+      border-radius: 20px;
+      background: linear-gradient(155deg, rgba(255, 246, 200, 0.95), rgba(190, 241, 255, 0.94));
+      border: 2px solid rgba(8, 59, 99, 0.28);
+      box-shadow: 0 24px 50px rgba(0, 36, 67, 0.36);
+      padding: 18px;
+      color: #09314d;
+    }
+    #menuTitle {
+      margin: 0;
+      font-size: clamp(24px, 3.3vw, 32px);
+      line-height: 1.05;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 0.9px;
+      color: #08385a;
+    }
+    #menuSub {
+      margin: 6px 0 14px;
+      color: #1a5378;
+      font-weight: 700;
+    }
+    #menuTabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .menuTabBtn {
+      border: 0;
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-weight: 800;
+      cursor: pointer;
+      background: rgba(255, 255, 255, 0.75);
+      color: #0b3b5b;
+      box-shadow: inset 0 0 0 1px rgba(8, 59, 99, 0.18);
+    }
+    .menuTabBtn.active {
+      background: linear-gradient(145deg, #02b8ff, #41e293);
+      color: #05344f;
+      box-shadow: 0 10px 22px rgba(8, 92, 136, 0.25);
+    }
+    .menuSection { display: none; }
+    .menuSection.active { display: block; }
+    .menuGrid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .menuField {
+      padding: 10px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.6);
+      border: 1px solid rgba(8, 59, 99, 0.16);
+    }
+    .menuField label {
+      display: block;
+      font-weight: 800;
+      margin-bottom: 6px;
+      color: #104366;
+      font-size: 14px;
+    }
+    #menuPlayBtn {
+      width: 100%;
+      border: 0;
+      border-radius: 14px;
+      padding: 12px 16px;
+      margin-top: 10px;
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      background: linear-gradient(145deg, #00c6ff, #32e67f);
+      color: #05314c;
+      box-shadow: 0 14px 26px rgba(10, 120, 110, 0.28);
+    }
+    #aboutText {
+      line-height: 1.4;
+      color: #12486c;
+      background: rgba(255, 255, 255, 0.6);
+      border: 1px solid rgba(8, 59, 99, 0.16);
+      border-radius: 12px;
+      padding: 10px;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <div id="bucketLabels"></div>
+  <div id="successPopup">Great!</div>
+  <video id="camera" autoplay muted playsinline></video>
+  <img id="handSprite" alt="hand" />
+  <div id="hud">
+    <div id="hudTitle">Scoreboard</div>
+    <div id="hudTopRow">
+      <div id="levelLine" class="statChip">Level: 1</div>
+      <div id="scoreLine" class="statChip">Score: 0</div>
+      <button id="backBtn" type="button">Back</button>
+    </div>
+    <div id="timerLine">Time Left: 05:00</div>
+    <div id="timeBar"><div id="timeBarFill"></div></div>
+    <div id="goalLine">Goal: Move balls from mixed bucket to empty bucket</div>
+    <div id="promptLine">Prompt: Start with any ball</div>
+  </div>
+  <div id="status">Loading camera and hand tracking...</div>
+  <div id="menuOverlay">
+    <div id="menuCard">
+      <h1 id="menuTitle">Ball Sorting Activity</h1>
+      <div id="menuSub">Choose settings, then press Play.</div>
+      <div id="menuTabs">
+        <button id="playTabBtn" class="menuTabBtn active" type="button">Play</button>
+        <button id="settingsTabBtn" class="menuTabBtn" type="button">Settings</button>
+        <button id="aboutTabBtn" class="menuTabBtn" type="button">About</button>
+      </div>
+      <section id="playSection" class="menuSection active">
+        <div class="menuField">Press play to start from selected level with current settings.</div>
+        <button id="menuPlayBtn" type="button">Play</button>
+      </section>
+      <section id="settingsSection" class="menuSection">
+        <div class="menuGrid">
+          <div class="menuField">
+            <label for="musicToggle">Background Music</label>
+            <input id="musicToggle" type="checkbox" checked />
+          </div>
+          <div class="menuField">
+            <label for="startLevelSelect">Start Level</label>
+            <select id="startLevelSelect">
+              <option value="1" selected>Level 1</option>
+              <option value="2">Level 2</option>
+            </select>
+          </div>
+          <div class="menuField" style="grid-column: 1 / -1;">
+            <label for="sensitivityRange">Hand Sensitivity: <span id="sensitivityValue">0.22</span></label>
+            <input id="sensitivityRange" type="range" min="0.12" max="0.45" step="0.01" value="0.22" />
+          </div>
+        </div>
+      </section>
+      <section id="aboutSection" class="menuSection">
+        <div id="aboutText">
+          Open hand to arm, close hand to grab a ball, open hand to release.<br>
+          Level 1: move balls from Mixed bucket to Empty bucket.<br>
+          Level 2: listen to prompt ("Take blue ball" / "Take red ball"), pick matching color from Mixed bucket, and drop into matching color bucket.
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script type="module">
+    import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js";
+    import { HandLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
+
+    const LEVEL1_TARGET = 8;
+    const LEVEL2_TARGET = 12;
+    const GAME_TOTAL_MS = 300000;
+    const BALL_RADIUS = 21;
+    const HAND_SIZE = 120;
+    let handSmoothing = 0.22;
+    const HAND_LOST_GRACE_MS = 380;
+    const RELEASE_STABLE_FRAMES = 3;
+    const GRAVITY = 0.35;
+    const AIR_DRAG = 0.995;
+    const GROUND_DRAG = 0.9;
+
+    const app = document.getElementById("app");
+    const bucketLabelsEl = document.getElementById("bucketLabels");
+    const successPopup = document.getElementById("successPopup");
+    const video = document.getElementById("camera");
+    const handSprite = document.getElementById("handSprite");
+    const statusEl = document.getElementById("status");
+    const levelLine = document.getElementById("levelLine");
+    const goalLine = document.getElementById("goalLine");
+    const promptLine = document.getElementById("promptLine");
+    const scoreLine = document.getElementById("scoreLine");
+    const backBtn = document.getElementById("backBtn");
+    const timerLine = document.getElementById("timerLine");
+    const timeBarFill = document.getElementById("timeBarFill");
+    const menuOverlay = document.getElementById("menuOverlay");
+    const playTabBtn = document.getElementById("playTabBtn");
+    const settingsTabBtn = document.getElementById("settingsTabBtn");
+    const aboutTabBtn = document.getElementById("aboutTabBtn");
+    const playSection = document.getElementById("playSection");
+    const settingsSection = document.getElementById("settingsSection");
+    const aboutSection = document.getElementById("aboutSection");
+    const menuPlayBtn = document.getElementById("menuPlayBtn");
+    const musicToggle = document.getElementById("musicToggle");
+    const startLevelSelect = document.getElementById("startLevelSelect");
+    const sensitivityRange = document.getElementById("sensitivityRange");
+    const sensitivityValue = document.getElementById("sensitivityValue");
+
+    const bgMusic = new Audio("music/background.mp3");
+    bgMusic.loop = true;
+    bgMusic.volume = 0.35;
+    const slapSound = new Audio("music/slap.mp3");
+    slapSound.volume = 0.5;
+    const catchSound = new Audio("music/catching_sound.wav");
+    catchSound.volume = 0.8;
+    const openHandImg = new Image();
+    openHandImg.src = "images/openHand.png";
+    const closedHandImg = new Image();
+    closedHandImg.src = "images/closedHand.png";
+    handSprite.src = openHandImg.src;
+
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+    let startTime = performance.now();
+    let gameOver = false;
+    let level = 1;
+    let score = 0;
+    let instructionColor = null;
+    let successPopupTimer = null;
+    const FEEDBACK_POPUP_MS = 1300;
+    const successPhrases = ["Great!", "Awesome!", "Nice one!", "Well done!", "Perfect!"];
+    const missPhrases = ["Oops!", "Try again!", "Almost!", "Close one!", "Not this one!"];
+    let selectedStartLevel = 1;
+    let gameStarted = false;
+    let trackingInitialized = false;
+    let musicEnabled = true;
+
+    let handLandmarker = null;
+    let handPos = { x: width / 2, y: height / 2 };
+    let prevHandPos = { x: width / 2, y: height / 2 };
+    let handVel = { x: 0, y: 0 };
+    let handClosed = false;
+    let prevHandClosed = false;
+    let handVisible = false;
+    let openHandStableFrames = 0;
+    let lastHandSeenAt = 0;
+    let catchArmed = false;
+    let heldBallId = null;
+
+    const balls = [];
+    let buckets = {};
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x8fd3ff);
+    scene.fog = new THREE.Fog(0xc6ecff, 2200, 4600);
+
+    const camera = new THREE.OrthographicCamera(
+      -width / 2, width / 2, height / 2, -height / 2, 1, 5000
+    );
+    camera.position.set(0, 0, 1000);
+    camera.lookAt(0, 0, 0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    app.appendChild(renderer.domElement);
+
+    function makeSkyGradientTexture() {
+      const c = document.createElement("canvas");
+      c.width = 2;
+      c.height = 1024;
+      const g = c.getContext("2d");
+      const grad = g.createLinearGradient(0, 0, 0, c.height);
+      grad.addColorStop(0, "#66b9ff");
+      grad.addColorStop(0.5, "#a8ddff");
+      grad.addColorStop(1, "#ecf9ff");
+      g.fillStyle = grad;
+      g.fillRect(0, 0, c.width, c.height);
+      const t = new THREE.CanvasTexture(c);
+      t.colorSpace = THREE.SRGBColorSpace;
+      return t;
+    }
+
+    function makeCloudTexture() {
+      const c = document.createElement("canvas");
+      c.width = 256;
+      c.height = 128;
+      const g = c.getContext("2d");
+      g.clearRect(0, 0, c.width, c.height);
+      g.fillStyle = "rgba(255,255,255,0.96)";
+      const blobs = [
+        [44, 82, 24], [68, 66, 30], [95, 58, 34], [124, 56, 32],
+        [152, 62, 30], [178, 72, 26], [202, 84, 22], [78, 86, 24],
+        [122, 86, 25], [160, 88, 22]
+      ];
+      for (const [x, y, r] of blobs) {
+        g.beginPath();
+        g.arc(x, y, r, 0, Math.PI * 2);
+        g.fill();
+      }
+
+      // Flat-ish underside to keep a cartoon cloud silhouette.
+      g.fillRect(42, 84, 168, 20);
+
+      // Light top cap to keep form readable without soft blur.
+      g.fillStyle = "rgba(255,255,255,0.78)";
+      g.beginPath();
+      g.arc(112, 54, 22, Math.PI, Math.PI * 2);
+      g.fill();
+      const t = new THREE.CanvasTexture(c);
+      t.colorSpace = THREE.SRGBColorSpace;
+      return t;
+    }
+
+    const sky = new THREE.Mesh(
+      new THREE.SphereGeometry(4200, 40, 24),
+      new THREE.MeshBasicMaterial({
+        map: makeSkyGradientTexture(),
+        side: THREE.BackSide,
+        depthWrite: false
+      })
+    );
+    sky.position.set(0, 0, -2600);
+    scene.add(sky);
+
+    const sunGroup = new THREE.Group();
+    scene.add(sunGroup);
+    const sunGlow = new THREE.Mesh(
+      new THREE.CircleGeometry(240, 42),
+      new THREE.MeshBasicMaterial({
+        color: 0xfff3b3,
+        transparent: true,
+        opacity: 0.38
+      })
+    );
+    const sunCore = new THREE.Mesh(
+      new THREE.CircleGeometry(128, 42),
+      new THREE.MeshBasicMaterial({
+        color: 0xfff8cf,
+        transparent: true,
+        opacity: 0.98
+      })
+    );
+    sunGlow.position.z = -1900;
+    sunCore.position.z = -1890;
+    sunGroup.add(sunGlow, sunCore);
+
+    const cloudTexture = makeCloudTexture();
+    const cloudGroup = new THREE.Group();
+    const clouds = [];
+    for (let i = 0; i < 24; i += 1) {
+      const isFar = i % 3 === 0;
+      const s = new THREE.Sprite(
+        new THREE.SpriteMaterial({
+          map: cloudTexture,
+          color: 0xffffff,
+          transparent: true,
+          opacity: isFar ? random(0.28, 0.5) : random(0.55, 0.82),
+          depthWrite: false
+        })
+      );
+      s.position.set(
+        random(-2400, 2400),
+        random(80, 320),
+        isFar ? -2050 + random(-80, 80) : -1650 + random(-140, 140)
+      );
+      const sc = isFar ? random(220, 360) : random(280, 470);
+      s.scale.set(sc * 2.1, sc, 1);
+      cloudGroup.add(s);
+      clouds.push({ sprite: s, speed: isFar ? random(0.06, 0.14) : random(0.18, 0.42), bob: random(0.04, 0.12) });
+    }
+    scene.add(cloudGroup);
+
+    // Lights
+    scene.add(new THREE.AmbientLight(0xe8f7ff, 0.5));
+    const dir = new THREE.DirectionalLight(0xfff0c2, 1.28);
+    dir.position.set(460, 780, 880);
+    scene.add(dir);
+    const hemi = new THREE.HemisphereLight(0xd8efff, 0x83b873, 0.95);
+    scene.add(hemi);
+
+    // Terrain layers (no giant block behind buckets)
+    const terrainGroup = new THREE.Group();
+    scene.add(terrainGroup);
+
+    const meadow = new THREE.Mesh(
+      new THREE.BoxGeometry(5200, 360, 220),
+      new THREE.MeshStandardMaterial({ color: 0x75b96a, roughness: 0.95, metalness: 0.0 })
+    );
+    meadow.position.set(0, -height * 0.5 - 420, -1150);
+    terrainGroup.add(meadow);
+
+    const hills = [];
+    function addHill(x, yFromBottom, sx, sy, sz, color) {
+      const hill = new THREE.Mesh(
+        new THREE.SphereGeometry(1, 24, 16),
+        new THREE.MeshStandardMaterial({ color, roughness: 0.9, metalness: 0.0 })
+      );
+      hill.scale.set(sx, sy, sz);
+      hill.position.set(x, -height * 0.5 + yFromBottom, -1500);
+      terrainGroup.add(hill);
+      hills.push({ mesh: hill, yFromBottom });
+    }
+
+    addHill(-1500, -80, 1100, 210, 230, 0x6fb268);
+    addHill(-520, -60, 920, 200, 220, 0x6aa961);
+    addHill(620, -64, 980, 210, 230, 0x74b96c);
+    addHill(1620, -92, 820, 185, 220, 0x689f5f);
+
+    const farMountainGroup = new THREE.Group();
+    scene.add(farMountainGroup);
+    const farMountains = [];
+    function addFarMountain(x, yFromBottom, sx, sy, sz, color) {
+      const mountain = new THREE.Mesh(
+        new THREE.ConeGeometry(1, 1, 3),
+        new THREE.MeshStandardMaterial({ color, roughness: 0.94, metalness: 0.02 })
+      );
+      mountain.scale.set(sx, sy, sz);
+      mountain.rotation.y = Math.PI / 3;
+      mountain.position.set(x, -height * 0.5 + yFromBottom, -2180);
+      farMountainGroup.add(mountain);
+      farMountains.push({ mesh: mountain, yFromBottom });
+    }
+
+    // Distant triangular brown mountains (kept low so they do not cover much).
+    addFarMountain(-1450, 118, 700, 300, 180, 0x8f6f4d);
+    addFarMountain(-320, 132, 620, 260, 170, 0x9a7853);
+    addFarMountain(760, 126, 660, 280, 180, 0x856545);
+    addFarMountain(1750, 112, 560, 235, 160, 0x7a5b3d);
+    addFarMountain(-2050, 102, 520, 210, 150, 0x7e5f41);
+    addFarMountain(-1120, 145, 820, 360, 210, 0x8b6a49);
+    addFarMountain(120, 108, 500, 205, 145, 0x6f5238);
+    addFarMountain(1280, 140, 760, 330, 205, 0x946f4c);
+    addFarMountain(2240, 96, 470, 190, 135, 0x6a4f36);
+    addFarMountain(-2380, 104, 520, 210, 140, 0x70543a);
+    addFarMountain(-1780, 152, 900, 390, 220, 0x8b6a48);
+    addFarMountain(-860, 88, 440, 180, 130, 0x6a4e35);
+    addFarMountain(30, 156, 980, 430, 240, 0x977251);
+    addFarMountain(980, 92, 460, 190, 130, 0x75583c);
+    addFarMountain(1580, 166, 1020, 450, 245, 0x9d7754);
+    addFarMountain(2460, 120, 620, 260, 165, 0x7b5c3f);
+
+    const birdGroup = new THREE.Group();
+    scene.add(birdGroup);
+    const birds = [];
+    function createBird(x, y, scale, speed, phase) {
+      const g = new THREE.Group();
+      const wingMat = new THREE.MeshBasicMaterial({ color: 0x1a2430, transparent: true, opacity: 0.95, depthWrite: false });
+      const body = new THREE.Mesh(
+        new THREE.SphereGeometry(5.5 * scale, 12, 10),
+        new THREE.MeshBasicMaterial({ color: 0x202d3a, transparent: true, opacity: 0.96, depthWrite: false })
+      );
+      const wingLen = 30 * scale;
+      const leftWingPivot = new THREE.Group();
+      const rightWingPivot = new THREE.Group();
+      const leftWing = new THREE.Mesh(new THREE.BoxGeometry(wingLen, 3.6 * scale, 1), wingMat);
+      const rightWing = new THREE.Mesh(new THREE.BoxGeometry(wingLen, 3.6 * scale, 1), wingMat);
+      const tail = new THREE.Mesh(new THREE.ConeGeometry(3.4 * scale, 8 * scale, 3), wingMat);
+      // Pivot at inner edge touching body; wing extends outward from the pivot.
+      const bodyRadius = 5.5 * scale;
+      leftWingPivot.position.set(-bodyRadius, 0.4 * scale, 0);
+      rightWingPivot.position.set(bodyRadius, 0.4 * scale, 0);
+      leftWing.position.set(-wingLen * 0.5, 0, 0);
+      rightWing.position.set(wingLen * 0.5, 0, 0);
+      leftWingPivot.add(leftWing);
+      rightWingPivot.add(rightWing);
+      tail.position.set(0, -4.8 * scale, 0);
+      tail.rotation.z = Math.PI;
+      g.add(body, leftWingPivot, rightWingPivot, tail);
+      g.position.set(x, y, -1450);
+      g.renderOrder = 5;
+      birdGroup.add(g);
+      birds.push({ g, leftWingPivot, rightWingPivot, speed, baseY: y, phase });
+    }
+
+    for (let i = 0; i < 14; i += 1) {
+      createBird(
+        random(-2200, 2200),
+        random(170, 430),
+        random(1.15, 2.05),
+        random(0.8, 1.6),
+        random(0, Math.PI * 2)
+      );
+    }
+
+    function layoutTerrain() {
+      meadow.position.y = -height * 0.5 - 420;
+      for (const h of hills) h.mesh.position.y = -height * 0.5 + h.yFromBottom;
+      for (const m of farMountains) m.mesh.position.y = -height * 0.5 + m.yFromBottom;
+    }
+    layoutTerrain();
+
+    const platformMat = new THREE.MeshStandardMaterial({ color: 0xaeb8c2, roughness: 0.72, metalness: 0.18 });
+    const platformGroup = new THREE.Group();
+    scene.add(platformGroup);
+    const plantGroup = new THREE.Group();
+    scene.add(plantGroup);
+
+    function toWorldX(screenX) { return screenX - width / 2; }
+    function toWorldY(screenY) { return height / 2 - screenY; }
+    function toScreenX(worldX) { return worldX + width / 2; }
+    function toScreenY(worldY) { return height / 2 - worldY; }
+
+    function random(min, max) {
+      return Math.random() * (max - min) + min;
+    }
+
+    function play(sound) {
+      sound.currentTime = 0;
+      sound.play().catch(() => {});
+    }
+
+    function ensureBgMusic() {
+      if (!musicEnabled) return;
+      if (!bgMusic.paused) return;
+      bgMusic.play().catch(() => {});
+    }
+
+    function setMenuTab(tab) {
+      const isPlay = tab === "play";
+      const isSettings = tab === "settings";
+      const isAbout = tab === "about";
+      playSection.classList.toggle("active", isPlay);
+      settingsSection.classList.toggle("active", isSettings);
+      aboutSection.classList.toggle("active", isAbout);
+      playTabBtn.classList.toggle("active", isPlay);
+      settingsTabBtn.classList.toggle("active", isSettings);
+      aboutTabBtn.classList.toggle("active", isAbout);
+    }
+
+    function applyMenuSettings() {
+      selectedStartLevel = Number(startLevelSelect.value) === 2 ? 2 : 1;
+      handSmoothing = Number(sensitivityRange.value);
+      sensitivityValue.textContent = handSmoothing.toFixed(2);
+      musicEnabled = musicToggle.checked;
+      if (!musicEnabled) {
+        bgMusic.pause();
+      } else {
+        ensureBgMusic();
+      }
+      if (!gameStarted) {
+        level = selectedStartLevel;
+        setupLayout();
+      }
+    }
+
+    async function beginGameFromMenu() {
+      applyMenuSettings();
+      level = selectedStartLevel;
+      score = 0;
+      gameOver = false;
+      catchArmed = false;
+      heldBallId = null;
+      openHandStableFrames = 0;
+      handVisible = false;
+      setupLayout();
+      if (level === 1) {
+        seedLevel1();
+      } else {
+        seedLevel2();
+      }
+      startTime = performance.now();
+      menuOverlay.style.display = "none";
+      document.getElementById("hud").style.display = "block";
+      document.getElementById("status").style.display = "block";
+      gameStarted = true;
+      ensureBgMusic();
+      if (!trackingInitialized) {
+        await initHandTracking();
+      }
+    }
+
+    function returnToMenu() {
+      gameStarted = false;
+      heldBallId = null;
+      catchArmed = false;
+      handVisible = false;
+      openHandStableFrames = 0;
+      speechSynthesis.cancel();
+      menuOverlay.style.display = "flex";
+      document.getElementById("hud").style.display = "none";
+      document.getElementById("status").style.display = "none";
+      setMenuTab("play");
+      setupLayout();
+    }
+
+    function speak(text) {
+      const u = new SpeechSynthesisUtterance(text);
+      u.rate = 0.95;
+      speechSynthesis.cancel();
+      speechSynthesis.speak(u);
+    }
+
+    function pick(arr) {
+      return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    function showFeedbackPopup(text, type = "success") {
+      successPopup.textContent = text;
+      successPopup.classList.toggle("fail", type === "fail");
+      successPopup.classList.remove("active");
+      void successPopup.offsetWidth;
+      successPopup.classList.add("active");
+      if (successPopupTimer) clearTimeout(successPopupTimer);
+      successPopupTimer = setTimeout(() => successPopup.classList.remove("active"), FEEDBACK_POPUP_MS);
+    }
+
+    function triggerSuccessFeedback() {
+      const phrase = pick(successPhrases);
+      showFeedbackPopup(phrase, "success");
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(phrase.replace("!", ""));
+      u.rate = 1.0;
+      speechSynthesis.speak(u);
+    }
+
+    function triggerMissFeedback() {
+      const phrase = pick(missPhrases);
+      showFeedbackPopup(phrase, "fail");
+      speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(phrase.replace("!", ""));
+      u.rate = 1.0;
+      speechSynthesis.speak(u);
+    }
+
+    function resetBallToSource(ball) {
+      const b = bucketBounds(buckets.source);
+      ball.bucket = "source";
+      ball.freeFall = false;
+      ball.dropTargets = null;
+      ball.placed = false;
+      ball.missHandled = true;
+      ball.pendingSuccess = null;
+      ball.x = Math.max(b.minX, Math.min(b.maxX, ball.x));
+      ball.y = b.minY - 6;
+      ball.vx = 0;
+      ball.vy = 0;
+      syncBallMesh(ball);
+    }
+
+    function updateHud(prompt) {
+      levelLine.textContent = `Level: ${level}`;
+      goalLine.textContent = level === 1
+        ? `Goal: Move ${LEVEL1_TARGET} balls to empty bucket`
+        : `Goal: ${LEVEL2_TARGET} correct sorts by voice`;
+      promptLine.textContent = `Prompt: ${prompt}`;
+      scoreLine.textContent = `Score: ${score}`;
+    }
+
+    function formatTimeMs(ms) {
+      const total = Math.max(0, Math.ceil(ms / 1000));
+      const m = Math.floor(total / 60).toString().padStart(2, "0");
+      const s = (total % 60).toString().padStart(2, "0");
+      return `${m}:${s}`;
+    }
+
+    function levelTargets() {
+      return level === 1 ? ["source", "target"] : ["source", "blue", "red"];
+    }
+
+    function renderBucketLabels() {
+      bucketLabelsEl.innerHTML = "";
+      const active = levelTargets();
+      const titles = {
+        source: "Mixed",
+        target: "Empty",
+        blue: "Blue",
+        red: "Red"
+      };
+      for (const n of active) {
+        if (!buckets[n]) continue;
+        const tag = document.createElement("div");
+        tag.className = "bucketLabel";
+        tag.textContent = titles[n] || n;
+        const lx = toScreenX(buckets[n].cx);
+        const ly = toScreenY(buckets[n].cy - buckets[n].height * 0.5 - 30);
+        tag.style.left = `${lx}px`;
+        tag.style.top = `${ly}px`;
+        bucketLabelsEl.appendChild(tag);
+      }
+    }
+
+    function buildBucketVisual(bucket, tint) {
+      const group = new THREE.Group();
+
+      const outer = new THREE.Mesh(
+        new THREE.CylinderGeometry(bucket.radiusTop, bucket.radiusBottom, bucket.height, 36, 1, true),
+        new THREE.MeshStandardMaterial({
+          color: 0xdff4ff,
+          metalness: 0.06,
+          roughness: 0.1,
+          emissive: 0x0f1f2a,
+          transparent: true,
+          opacity: 0.32,
+          side: THREE.DoubleSide
+        })
+      );
+      outer.position.y = 0;
+      outer.renderOrder = 3;
+      group.add(outer);
+
+      const innerTint = new THREE.Mesh(
+        new THREE.CylinderGeometry(bucket.innerRadiusTop, bucket.innerRadiusBottom, bucket.height - 8, 36, 1, true),
+        new THREE.MeshStandardMaterial({ color: tint, transparent: true, opacity: 0.14, side: THREE.BackSide, roughness: 0.38, metalness: 0.05 })
+      );
+      innerTint.position.y = 0;
+      innerTint.renderOrder = 2;
+      group.add(innerTint);
+
+      const bottom = new THREE.Mesh(
+        new THREE.CylinderGeometry(bucket.innerRadiusBottom, bucket.innerRadiusBottom, 8, 36),
+        new THREE.MeshStandardMaterial({ color: 0x8ea5b8, roughness: 0.55, metalness: 0.14 })
+      );
+      bottom.position.y = -bucket.height * 0.5 + 4;
+      bottom.renderOrder = 1;
+      group.add(bottom);
+
+      const lip = new THREE.Mesh(
+        new THREE.TorusGeometry(bucket.radiusTop + 2, 6, 14, 48),
+        new THREE.MeshStandardMaterial({ color: 0xf2fbff, roughness: 0.22, metalness: 0.25 })
+      );
+      lip.rotation.x = Math.PI / 2;
+      lip.position.y = bucket.height * 0.5;
+      lip.renderOrder = 4;
+      group.add(lip);
+
+      group.position.set(bucket.cx, bucket.cy, 0);
+      return group;
+    }
+
+    function createPlatform(x, y, w, h, z) {
+      const mesh = new THREE.Mesh(
+        new THREE.BoxGeometry(w, h, 160),
+        platformMat
+      );
+      mesh.position.set(x, y, z);
+      platformGroup.add(mesh);
+    }
+
+    function createPlant(x, y, z, scale = 1) {
+      const g = new THREE.Group();
+      const stem = new THREE.Mesh(
+        new THREE.CylinderGeometry(5 * scale, 7 * scale, 54 * scale, 10),
+        new THREE.MeshStandardMaterial({ color: 0x3f8d43, roughness: 0.8, metalness: 0.02 })
+      );
+      stem.position.y = 22 * scale;
+      g.add(stem);
+
+      const leafColors = [0x57ad52, 0x4d9f49, 0x63b75d];
+      const leafOffsets = [-14, 0, 14];
+      for (let i = 0; i < 3; i += 1) {
+        const leaf = new THREE.Mesh(
+          new THREE.ConeGeometry(14 * scale, 34 * scale, 12),
+          new THREE.MeshStandardMaterial({ color: leafColors[i], roughness: 0.85, metalness: 0.0 })
+        );
+        leaf.position.set(leafOffsets[i] * scale, 46 * scale + i * 4 * scale, 0);
+        leaf.rotation.z = (i - 1) * 0.34;
+        g.add(leaf);
+      }
+
+      g.position.set(x, y, z);
+      plantGroup.add(g);
+    }
+
+    function setupLayout() {
+      while (platformGroup.children.length) platformGroup.remove(platformGroup.children[0]);
+      while (plantGroup.children.length) plantGroup.remove(plantGroup.children[0]);
+      for (const k of Object.keys(buckets)) {
+        if (buckets[k].mesh) scene.remove(buckets[k].mesh);
+      }
+
+      const bucketHeight = Math.max(220, Math.floor(height * 0.32));
+      const topY = toWorldY(height * 0.71);
+      const lowY = toWorldY(height * 0.80);
+      const rTop = Math.max(90, Math.floor(width * 0.08));
+      const rBottom = Math.max(74, Math.floor(width * 0.065));
+
+      buckets = {
+        source: {
+          name: "Mixed Bucket",
+          cx: toWorldX(width * 0.14),
+          cy: topY,
+          radiusTop: rTop,
+          radiusBottom: rBottom,
+          innerRadiusTop: rTop - 16,
+          innerRadiusBottom: rBottom - 14,
+          height: bucketHeight
+        },
+        target: {
+          name: "Empty Bucket",
+          cx: toWorldX(width * 0.86),
+          cy: topY,
+          radiusTop: rTop,
+          radiusBottom: rBottom,
+          innerRadiusTop: rTop - 16,
+          innerRadiusBottom: rBottom - 14,
+          height: bucketHeight
+        },
+        blue: {
+          name: "Blue Bucket",
+          cx: toWorldX(width * 0.37),
+          cy: lowY,
+          radiusTop: rTop,
+          radiusBottom: rBottom,
+          innerRadiusTop: rTop - 16,
+          innerRadiusBottom: rBottom - 14,
+          height: bucketHeight
+        },
+        red: {
+          name: "Red Bucket",
+          cx: toWorldX(width * 0.63),
+          cy: lowY,
+          radiusTop: rTop,
+          radiusBottom: rBottom,
+          innerRadiusTop: rTop - 16,
+          innerRadiusBottom: rBottom - 14,
+          height: bucketHeight
+        }
+      };
+
+      const active = levelTargets();
+      const tints = { source: 0x7ac3ff, target: 0x8ff5dd, blue: 0x6da8ff, red: 0xff8383 };
+      for (const n of active) {
+        buckets[n].mesh = buildBucketVisual(buckets[n], tints[n]);
+        scene.add(buckets[n].mesh);
+        createPlatform(buckets[n].cx, buckets[n].cy - bucketHeight * 0.7, 310, 120, -340);
+      }
+
+      // Plants around active bucket stands for depth/immersion.
+      const zNear = -160;
+      for (const n of active) {
+        const py = buckets[n].cy - bucketHeight * 0.96;
+        createPlant(buckets[n].cx - 165, py, zNear, 1.05);
+        createPlant(buckets[n].cx + 165, py + 4, zNear - 12, 1.1);
+      }
+      renderBucketLabels();
+    }
+
+    function bucketBounds(bucket) {
+      return {
+        minX: bucket.cx - bucket.innerRadiusBottom + BALL_RADIUS,
+        maxX: bucket.cx + bucket.innerRadiusBottom - BALL_RADIUS,
+        minY: bucket.cy + bucket.height * 0.5 - BALL_RADIUS - 18, // top interior entry
+        maxY: bucket.cy - bucket.height * 0.5 + BALL_RADIUS + 6 // bottom
+      };
+    }
+
+    function spawnBall(bucketName, color) {
+      const b = buckets[bucketName];
+      const bounds = bucketBounds(b);
+      const mesh = new THREE.Mesh(
+        new THREE.SphereGeometry(BALL_RADIUS, 28, 28),
+        new THREE.MeshStandardMaterial({
+          color: color === "blue" ? 0x4a9dff : 0xff5d5d,
+          roughness: 0.28,
+          metalness: 0.12
+        })
+      );
+      scene.add(mesh);
+      return {
+        id: Math.random().toString(36).slice(2),
+        bucket: bucketName,
+        color,
+        x: random(bounds.minX, bounds.maxX),
+        y: random(bounds.minY - 52, bounds.minY - 10),
+        z: 130,
+        vx: random(-0.4, 0.4),
+        vy: 0,
+        freeFall: false,
+        dropTargets: null,
+        missHandled: false,
+        pendingSuccess: null,
+        mesh,
+        placed: false
+      };
+    }
+
+    function syncBallMesh(ball) {
+      ball.mesh.position.set(ball.x, ball.y, ball.z);
+    }
+
+    function seedLevel1() {
+      for (const b of balls) scene.remove(b.mesh);
+      balls.length = 0;
+      for (let i = 0; i < 10; i += 1) balls.push(spawnBall("source", Math.random() < 0.5 ? "blue" : "red"));
+      instructionColor = null;
+      updateHud("Start with any ball");
+    }
+
+    function nextInstruction() {
+      instructionColor = Math.random() < 0.5 ? "blue" : "red";
+      const text = instructionColor === "blue" ? "Take blue ball" : "Take red ball";
+      updateHud(text);
+      speak(text);
+    }
+
+    function seedLevel2() {
+      for (const b of balls) scene.remove(b.mesh);
+      balls.length = 0;
+      for (let i = 0; i < 14; i += 1) {
+        balls.push(spawnBall("source", Math.random() < 0.5 ? "blue" : "red"));
+      }
+      nextInstruction();
+    }
+
+    function ballById(id) {
+      return balls.find((b) => b.id === id) || null;
+    }
+
+    function detectClosed(landmarks) {
+      const tips = [8, 12, 16, 20];
+      const pips = [6, 10, 14, 18];
+      let folded = 0;
+      for (let i = 0; i < 4; i += 1) {
+        if (landmarks[tips[i]].y > landmarks[pips[i]].y) folded += 1;
+      }
+      return folded >= 4;
+    }
+
+    function canOccupy(ball, nx, ny) {
+      if (ball.freeFall) return true;
+      const b = bucketBounds(buckets[ball.bucket]);
+      if (nx < b.minX || nx > b.maxX || ny < b.maxY || ny > b.minY) return false;
+      const minD = BALL_RADIUS * 2;
+      const minDSq = minD * minD;
+      for (const o of balls) {
+        if (o.id === ball.id || o.id === heldBallId || o.bucket !== ball.bucket || o.freeFall) continue;
+        const dx = nx - o.x;
+        const dy = ny - o.y;
+        if (dx * dx + dy * dy < minDSq) return false;
+      }
+      return true;
+    }
+
+    function resolveBallCollisions() {
+      for (let i = 0; i < balls.length; i += 1) {
+        const a = balls[i];
+        if (a.id === heldBallId || a.freeFall) continue;
+        for (let j = i + 1; j < balls.length; j += 1) {
+          const b = balls[j];
+          if (b.id === heldBallId || b.freeFall || a.bucket !== b.bucket) continue;
+          const dx = b.x - a.x;
+          const dy = b.y - a.y;
+          const dist = Math.hypot(dx, dy) || 0.0001;
+          const minD = BALL_RADIUS * 2;
+          if (dist >= minD) continue;
+          const nx = dx / dist;
+          const ny = dy / dist;
+          const overlap = minD - dist;
+          a.x -= nx * overlap * 0.5;
+          a.y -= ny * overlap * 0.5;
+          b.x += nx * overlap * 0.5;
+          b.y += ny * overlap * 0.5;
+        }
+      }
+    }
+
+    function unstickBallFromMouth(ball) {
+      if (ball.freeFall) return;
+      const b = bucketBounds(buckets[ball.bucket]);
+      // If the ball is sitting at the top lip with little downward speed, push it into a valid interior slot.
+      if (ball.y < b.minY - 6) return;
+      if (ball.vy < -0.2) return;
+
+      const centerX = buckets[ball.bucket].cx;
+      const xOffsets = [0, 4, -4, 8, -8, 12, -12, 16, -16, 22, -22, 28, -28];
+      for (let dy = 0; dy <= 120; dy += 2) {
+        for (const dx of xOffsets) {
+          const tx = Math.max(b.minX, Math.min(b.maxX, centerX + dx));
+          const ty = b.minY - 8 - dy;
+          if (!canOccupy(ball, tx, ty)) continue;
+          ball.x = tx;
+          ball.y = ty;
+          ball.vx *= 0.6;
+          ball.vy = -1.4;
+          return;
+        }
+      }
+    }
+
+    function clampInsideBucket(ball) {
+      if (ball.freeFall) return;
+      const b = bucketBounds(buckets[ball.bucket]);
+      if (ball.x < b.minX) ball.x = b.minX;
+      if (ball.x > b.maxX) ball.x = b.maxX;
+      // Keep center just inside the mouth so gravity can take over.
+      if (ball.y > b.minY - 1) ball.y = b.minY - 1;
+      if (ball.y < b.maxY) ball.y = b.maxY;
+    }
+
+    function forceDownwardSettle(dynamic) {
+      // Hard guarantee: if a ball has free space under it, it must descend this frame.
+      const ordered = [...dynamic].sort((a, b) => a.y - b.y);
+      for (const ball of ordered) {
+        clampInsideBucket(ball);
+        let moved = false;
+
+        for (let step = 0; step < 12; step += 1) {
+          if (canOccupy(ball, ball.x, ball.y - 1)) {
+            ball.y -= 1;
+            moved = true;
+            continue;
+          }
+
+          const dirs = ball.vx >= 0 ? [1, -1] : [-1, 1];
+          let slid = false;
+          for (const d of dirs) {
+            if (!canOccupy(ball, ball.x + d, ball.y - 1)) continue;
+            ball.x += d;
+            ball.y -= 1;
+            ball.vx += d * 0.06;
+            moved = true;
+            slid = true;
+            break;
+          }
+          if (!slid) break;
+        }
+
+        if (moved) {
+          ball.vy = Math.min(ball.vy, -0.8);
+        } else {
+          ball.vy = Math.max(ball.vy, 0);
+          ball.vx *= GROUND_DRAG;
+        }
+      }
+    }
+
+    function settleFloatingBalls(dynamic) {
+      // Relaxation pass: repeatedly try to move balls down until they find support.
+      for (let iter = 0; iter < 18; iter += 1) {
+        let movedAny = false;
+        const ordered = [...dynamic].sort((a, b) => a.y - b.y);
+        for (const ball of ordered) {
+          if (ball.id === heldBallId) continue;
+          if (canOccupy(ball, ball.x, ball.y - 1)) {
+            ball.y -= 1;
+            ball.vy = Math.min(ball.vy, -0.6);
+            movedAny = true;
+            continue;
+          }
+
+          const dirs = ball.vx >= 0 ? [1, -1] : [-1, 1];
+          for (const d of dirs) {
+            if (!canOccupy(ball, ball.x + d, ball.y - 1)) continue;
+            ball.x += d;
+            ball.y -= 1;
+            ball.vx += d * 0.08;
+            ball.vy = Math.min(ball.vy, -0.45);
+            movedAny = true;
+            break;
+          }
+        }
+        if (!movedAny) break;
+      }
+    }
+
+    function simulatePhysics() {
+      const dynamic = balls.filter((b) => b.id !== heldBallId).sort((a, b) => a.y - b.y);
+      for (const ball of dynamic) {
+        if (ball.freeFall) {
+          const prevY = ball.y;
+          ball.vy -= GRAVITY;
+          ball.vx *= AIR_DRAG;
+          ball.x += ball.vx;
+          ball.y += ball.vy;
+          const landingNames = ball.dropTargets && ball.dropTargets.length
+            ? ball.dropTargets
+            : Object.keys(buckets);
+          let landed = null;
+          for (const n of landingNames) {
+            const b = bucketBounds(buckets[n]);
+            const inX = ball.x >= b.minX - BALL_RADIUS && ball.x <= b.maxX + BALL_RADIUS;
+            // Swept check: if we move from above mouth to anywhere inside/below in one frame, still count as entering.
+            const crossedMouth = prevY > b.minY + 6 && ball.y <= b.minY + 6;
+            const belowMouth = ball.y <= b.minY + 10;
+            if (inX && (crossedMouth || belowMouth)) {
+              landed = n;
+              break;
+            }
+          }
+          if (landed) {
+            ball.bucket = landed;
+            ball.freeFall = false;
+            ball.dropTargets = null;
+            ball.missHandled = false;
+            clampInsideBucket(ball);
+          }
+          // If it falls below the active bucket area without entering any bucket, treat as missed drop.
+          if (ball.freeFall && !ball.missHandled) {
+            const missY = -height * 0.5 - 140;
+            if (ball.y < missY) {
+              triggerMissFeedback();
+              resetBallToSource(ball);
+            }
+          }
+          continue;
+        }
+
+        clampInsideBucket(ball);
+        ball.vy -= GRAVITY; // down in screen = -worldY
+        ball.vx *= AIR_DRAG;
+
+        const steps = Math.min(16, Math.max(1, Math.ceil(Math.max(Math.abs(ball.vx), Math.abs(ball.vy)))));
+        for (let s = 0; s < steps; s += 1) {
+          const tx = ball.x + ball.vx / steps;
+          const ty = ball.y + ball.vy / steps;
+          if (canOccupy(ball, tx, ty)) {
+            ball.x = tx;
+            ball.y = ty;
+            continue;
+          }
+
+          if (ball.vy < 0 && canOccupy(ball, ball.x, ball.y - 1)) {
+            ball.y -= 1;
+          } else if (ball.vy < 0) {
+            const dirs = ball.vx >= 0 ? [1, -1] : [-1, 1];
+            let rolled = false;
+            for (const d of dirs) {
+              if (canOccupy(ball, ball.x + d, ball.y - 1)) {
+                ball.x += d;
+                ball.y -= 1;
+                ball.vx += d * 0.2;
+                rolled = true;
+                break;
+              }
+            }
+            if (!rolled) {
+              ball.vy = 0;
+              ball.vx *= GROUND_DRAG;
+              break;
+            }
+          }
+        }
+      }
+
+      const settled = dynamic.filter((b) => !b.freeFall);
+      for (const ball of settled) unstickBallFromMouth(ball);
+      for (let i = 0; i < 3; i += 1) resolveBallCollisions();
+      forceDownwardSettle(settled);
+      settleFloatingBalls(settled);
+      for (let i = 0; i < 2; i += 1) resolveBallCollisions();
+      for (const ball of dynamic) syncBallMesh(ball);
+    }
+
+    function handRect() {
+      return {
+        x: handPos.x - HAND_SIZE / 2,
+        y: handPos.y - HAND_SIZE / 2,
+        w: HAND_SIZE,
+        h: HAND_SIZE
+      };
+    }
+
+    function intersects(a, b) {
+      return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+    }
+
+    function armCatch() {
+      if (handClosed || heldBallId) return;
+      const h = handRect();
+      for (const ball of balls) {
+        const r = { x: toScreenX(ball.x) - BALL_RADIUS, y: toScreenY(ball.y) - BALL_RADIUS, w: BALL_RADIUS * 2, h: BALL_RADIUS * 2 };
+        if (intersects(h, r)) {
+          catchArmed = true;
+          return;
+        }
+      }
+    }
+
+    function grabBall() {
+      if (!handClosed || !catchArmed || heldBallId) return;
+      const h = handRect();
+      let pick = null;
+      let bestDistSq = Infinity;
+      const cx = handPos.x;
+      const cy = handPos.y;
+      for (const ball of balls) {
+        const r = { x: toScreenX(ball.x) - BALL_RADIUS, y: toScreenY(ball.y) - BALL_RADIUS, w: BALL_RADIUS * 2, h: BALL_RADIUS * 2 };
+        if (!intersects(h, r)) continue;
+        const bx = toScreenX(ball.x);
+        const by = toScreenY(ball.y);
+        const dx = bx - cx;
+        const dy = by - cy;
+        const d2 = dx * dx + dy * dy;
+        if (d2 < bestDistSq) {
+          bestDistSq = d2;
+          pick = ball;
+        }
+      }
+      if (!pick) return;
+      heldBallId = pick.id;
+      pick.freeFall = false;
+      pick.dropTargets = null;
+      pick.missHandled = false;
+      pick.pendingSuccess = null;
+      catchArmed = false;
+      play(catchSound);
+    }
+
+    function followHand() {
+      if (!heldBallId) return;
+      const ball = ballById(heldBallId);
+      if (!ball) {
+        heldBallId = null;
+        return;
+      }
+      ball.x = toWorldX(handPos.x);
+      ball.y = toWorldY(handPos.y);
+      ball.vx = handVel.x * 0.22;
+      ball.vy = -handVel.y * 0.22;
+      syncBallMesh(ball);
+    }
+
+    function placeBallInBucket(ball, name) {
+      ball.bucket = name;
+      ball.freeFall = false;
+      ball.dropTargets = null;
+      ball.missHandled = false;
+      ball.pendingSuccess = null;
+      const b = bucketBounds(buckets[name]);
+      ball.x = Math.max(b.minX, Math.min(b.maxX, ball.x));
+      // Keep release height context: if dropped above mouth, start just inside mouth; if inside body, keep it.
+      if (ball.y > b.minY) {
+        ball.y = b.minY - 2;
+      } else {
+        ball.y = Math.max(b.maxY + 2, Math.min(b.minY - 2, ball.y));
+      }
+      ball.vx = handVel.x * 0.35;
+      ball.vy = Math.min(3.5, Math.max(-8, -handVel.y * 0.28 - 2.2));
+      syncBallMesh(ball);
+    }
+
+    function releaseBallFromHand(ball, name, releaseX, releaseY, dropTargets) {
+      ball.bucket = name;
+      ball.x = releaseX;
+      ball.y = releaseY;
+      ball.vx = handVel.x * 0.35;
+      ball.vy = Math.min(3.5, Math.max(-8, -handVel.y * 0.28 - 2.2));
+      ball.freeFall = true;
+      ball.dropTargets = dropTargets;
+      ball.missHandled = false;
+      ball.pendingSuccess = null;
+      syncBallMesh(ball);
+    }
+
+    function bucketByPoint(screenX, screenY, names) {
+      const wx = toWorldX(screenX);
+      const wy = toWorldY(screenY);
+      for (const n of names) {
+        const b = bucketBounds(buckets[n]);
+        const inBody = wx >= b.minX && wx <= b.maxX && wy >= b.maxY && wy <= b.minY;
+        const inMouth = wx >= b.minX && wx <= b.maxX && wy >= b.minY - 28 && wy <= b.minY + 20;
+        if (inBody || inMouth) return n;
+      }
+      return null;
+    }
+
+    function nearestBucketByX(screenX, names) {
+      const wx = toWorldX(screenX);
+      let best = null;
+      let bestDist = Infinity;
+      for (const n of names) {
+        const d = Math.abs(wx - buckets[n].cx);
+        if (d < bestDist) {
+          best = n;
+          bestDist = d;
+        }
+      }
+      return best;
+    }
+
+    function dropBall() {
+      if (!heldBallId) return;
+      if (!handVisible || handClosed || openHandStableFrames < RELEASE_STABLE_FRAMES) return;
+      const ball = ballById(heldBallId);
+      if (!ball) {
+        heldBallId = null;
+        return;
+      }
+
+      const releaseX = toWorldX(handPos.x);
+      const releaseY = toWorldY(handPos.y);
+      const sx = handPos.x;
+      const sy = handPos.y;
+      const targets = levelTargets();
+
+      if (level === 1) {
+        const chosen = bucketByPoint(sx, sy, targets) || nearestBucketByX(sx, targets);
+        releaseBallFromHand(ball, chosen, releaseX, releaseY, targets);
+        if (chosen === "target" && !ball.placed) {
+          ball.pendingSuccess = { expectedBucket: "target", mode: "level1" };
+        }
+      } else {
+        const chosen = bucketByPoint(sx, sy, targets) || nearestBucketByX(sx, targets);
+        if (chosen === "blue" || chosen === "red") {
+          if (ball.color === instructionColor && chosen === instructionColor) {
+            releaseBallFromHand(ball, chosen, releaseX, releaseY, targets);
+            if (!ball.placed) {
+              ball.pendingSuccess = { expectedBucket: instructionColor, mode: "level2" };
+            }
+          } else {
+            ball.placed = false;
+            releaseBallFromHand(ball, chosen, releaseX, releaseY, targets);
+            updateHud(`Wrong match. ${instructionColor === "blue" ? "Take blue ball" : "Take red ball"}`);
+            speak("Try again");
+          }
+        } else {
+          releaseBallFromHand(ball, chosen, releaseX, releaseY, targets);
+        }
+      }
+
+      heldBallId = null;
+    }
+
+    function finalizePendingSuccess() {
+      for (const ball of balls) {
+        if (!ball.pendingSuccess || ball.freeFall) continue;
+        const { expectedBucket, mode } = ball.pendingSuccess;
+        if (ball.bucket !== expectedBucket) continue;
+        // Count success only after the ball settles on support (bottom stack / bucket floor).
+        if (canOccupy(ball, ball.x, ball.y - 1)) continue;
+
+        ball.pendingSuccess = null;
+        if (ball.placed) continue;
+        ball.placed = true;
+        score += 1;
+        triggerSuccessFeedback();
+        if (mode === "level1") {
+          updateHud("Good. Move next ball");
+        } else if (mode === "level2" && score < LEVEL2_TARGET) {
+          setTimeout(() => {
+            if (!gameOver && level === 2) nextInstruction();
+          }, 560);
+        }
+      }
+    }
+
+    function checkProgress() {
+      if (level === 1 && score >= LEVEL1_TARGET) {
+        level = 2;
+        score = 0;
+        heldBallId = null;
+        catchArmed = false;
+        setupLayout();
+        seedLevel2();
+      } else if (level === 2 && score >= LEVEL2_TARGET) {
+        gameOver = true;
+        updateHud("Activity complete");
+      }
+    }
+
+    function drawTimer() {
+      const remaining = Math.max(0, GAME_TOTAL_MS - (performance.now() - startTime));
+      if (remaining <= 0) {
+        gameOver = true;
+        updateHud("Time up");
+      }
+      timerLine.textContent = `Time Left: ${formatTimeMs(remaining)}`;
+      const pct = Math.max(0, Math.min(1, remaining / GAME_TOTAL_MS));
+      timeBarFill.style.width = `${pct * 100}%`;
+      timeBarFill.style.background = pct < 0.2
+        ? "linear-gradient(90deg, #ff4d4d, #ff9a3c)"
+        : "linear-gradient(90deg, #09b6ff, #29e07f)";
+      statusEl.textContent = "Tracking active. Open hand to arm, close to grab, open to release.";
+    }
+
+    function animateEnvironment() {
+      const t = performance.now() * 0.00022;
+      sunGroup.position.x = Math.sin(t * 0.9) * 620;
+      sunGroup.position.y = 520 + Math.cos(t * 0.8) * 110;
+      sunGlow.material.opacity = 0.28 + Math.sin(t * 1.7) * 0.08;
+      sunCore.material.opacity = 0.9 + Math.sin(t * 2.1) * 0.05;
+
+      dir.position.x = 430 + Math.sin(t * 0.75) * 170;
+      dir.position.y = 760 + Math.cos(t * 0.85) * 85;
+      dir.intensity = 1.2 + Math.sin(t * 1.1) * 0.1;
+      hemi.intensity = 0.9 + Math.cos(t * 1.05) * 0.08;
+
+      for (const c of clouds) {
+        c.sprite.position.x += c.speed;
+        c.sprite.position.y += Math.sin(t * 1.8 + c.speed * 20) * c.bob;
+        if (c.sprite.position.x > 2550) {
+          c.sprite.position.x = -2550;
+          c.sprite.position.y = random(80, 320);
+        }
+      }
+
+      for (const b of birds) {
+        b.g.position.x += b.speed;
+        b.g.position.y = b.baseY + Math.sin(t * 2.7 + b.phase) * 14;
+        const flap = Math.sin(t * 11.5 + b.phase) * 0.72;
+        b.leftWingPivot.rotation.z = flap;
+        b.rightWingPivot.rotation.z = -flap;
+        if (b.g.position.x > 2300) {
+          b.g.position.x = -2300;
+          b.baseY = random(170, 430);
+        }
+      }
+    }
+
+    function updateHandSprite() {
+      handSprite.style.left = `${handPos.x}px`;
+      handSprite.style.top = `${handPos.y}px`;
+      handSprite.src = handClosed ? closedHandImg.src : openHandImg.src;
+      handSprite.style.display = handLandmarker && handVisible ? "block" : "none";
+    }
+
+    async function setupCameraFeed() {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { width: 1280, height: 720 },
+        audio: false
+      });
+      video.srcObject = stream;
+      await video.play();
+    }
+
+    async function setupHandLandmarker() {
+      const vision = await FilesetResolver.forVisionTasks(
+        "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm"
+      );
+      handLandmarker = await HandLandmarker.createFromOptions(vision, {
+        baseOptions: {
+          modelAssetPath:
+            "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task"
+        },
+        runningMode: "VIDEO",
+        numHands: 1
+      });
+    }
+
+    async function updateHand() {
+      const now = performance.now();
+      if (!handLandmarker || video.readyState < 2) {
+        handVisible = now - lastHandSeenAt <= HAND_LOST_GRACE_MS;
+        if (!handVisible) openHandStableFrames = 0;
+        return;
+      }
+      const result = handLandmarker.detectForVideo(video, now);
+      if (!result.landmarks || result.landmarks.length === 0) {
+        handVisible = now - lastHandSeenAt <= HAND_LOST_GRACE_MS;
+        if (!handVisible) openHandStableFrames = 0;
+        handVel.x *= 0.85;
+        handVel.y *= 0.85;
+        return;
+      }
+      const lm = result.landmarks[0];
+      const p = lm[9];
+      const rawX = (1 - p.x) * width;
+      const rawY = p.y * height;
+      prevHandPos.x = handPos.x;
+      prevHandPos.y = handPos.y;
+      handPos.x += (rawX - handPos.x) * handSmoothing;
+      handPos.y += (rawY - handPos.y) * handSmoothing;
+      handVel.x = handPos.x - prevHandPos.x;
+      handVel.y = handPos.y - prevHandPos.y;
+      prevHandClosed = handClosed;
+      handClosed = detectClosed(lm);
+      lastHandSeenAt = now;
+      handVisible = true;
+      openHandStableFrames = handClosed ? 0 : openHandStableFrames + 1;
+      if (handClosed && !prevHandClosed) play(slapSound);
+    }
+
+    function onResize() {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      camera.left = -width / 2;
+      camera.right = width / 2;
+      camera.top = height / 2;
+      camera.bottom = -height / 2;
+      camera.updateProjectionMatrix();
+      renderer.setSize(width, height);
+      layoutTerrain();
+      setupLayout();
+    }
+
+    async function loop() {
+      animateEnvironment();
+      if (gameStarted && !gameOver) {
+        await updateHand();
+        simulatePhysics();
+        finalizePendingSuccess();
+        armCatch();
+        grabBall();
+        followHand();
+        dropBall();
+        checkProgress();
+        drawTimer();
+      }
+      updateHandSprite();
+      renderer.render(scene, camera);
+      requestAnimationFrame(loop);
+    }
+
+    async function initHandTracking() {
+      if (trackingInitialized) return;
+      try {
+        await setupCameraFeed();
+        await setupHandLandmarker();
+        trackingInitialized = true;
+        statusEl.textContent = "Tracking active. Open hand to arm, close to grab, open to release.";
+      } catch (err) {
+        statusEl.textContent = "3D scene running. Hand tracking unavailable (camera/model failed).";
+        console.error(err);
+      }
+    }
+
+    async function start() {
+      document.getElementById("hud").style.display = "none";
+      statusEl.style.display = "none";
+      setMenuTab("play");
+      sensitivityValue.textContent = handSmoothing.toFixed(2);
+      window.addEventListener("resize", onResize);
+      playTabBtn.addEventListener("click", () => setMenuTab("play"));
+      settingsTabBtn.addEventListener("click", () => setMenuTab("settings"));
+      aboutTabBtn.addEventListener("click", () => setMenuTab("about"));
+      sensitivityRange.addEventListener("input", () => {
+        handSmoothing = Number(sensitivityRange.value);
+        sensitivityValue.textContent = handSmoothing.toFixed(2);
+      });
+      musicToggle.addEventListener("change", applyMenuSettings);
+      startLevelSelect.addEventListener("change", applyMenuSettings);
+      menuPlayBtn.addEventListener("click", () => { beginGameFromMenu(); });
+      backBtn.addEventListener("click", returnToMenu);
+      window.addEventListener("pointerdown", ensureBgMusic, { once: true });
+      window.addEventListener("keydown", ensureBgMusic, { once: true });
+      window.addEventListener("touchstart", ensureBgMusic, { once: true });
+      applyMenuSettings();
+      renderer.render(scene, camera);
+      loop();
+    }
+
+    start();
+  </script>
+</body>
+</html>

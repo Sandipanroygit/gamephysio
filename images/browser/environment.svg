@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 80 80">
+<filter id="f">
+<feTurbulence baseFrequency="20 2"/>
+<feBlend in="SourceGraphic" mode="multiply"/>
+<feComposite in2="SourceAlpha" operator="in"/>
+</filter>
+<linearGradient id="c" x2="0" y2="1">
+<stop stop-color="#fff"/>
+<stop stop-color="#fff" offset="1" stop-opacity="0"/>
+</linearGradient>
+<linearGradient id="g" x2="0" y2="1">
+<stop stop-color="#cf0"/>
+<stop stop-color="#096" offset="1"/>
+</linearGradient>
+<path id="b" fill="url(#c)" d="M1,6Q0,4 3,4Q3,3 4,3C3,1 7,0 7,2Q8,2 8,3Q10,3 9,6"/>
+<path id="h" fill="url(#g)" d="M0,9V1Q5,0 9,9" filter="url(#f)"/>
+<path fill="#6bf" d="M0,0H80V80H0"/>
+<use xlink:href="#b" transform="scale(5,4)"/>
+<use xlink:href="#b" transform="matrix(-6,0 0,8 56,9)"/>
+<use xlink:href="#b" transform="matrix(5,0 0,5 32,6)"/>
+<use xlink:href="#h" transform="matrix(-8,0 0,4 80,44)"/>
+<use xlink:href="#h" transform="matrix(8,0 0,3 0,53)"/>
+</svg>
