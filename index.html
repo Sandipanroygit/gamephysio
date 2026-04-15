@@ -382,6 +382,7 @@
     let handSmoothing = 0.22;
     const HAND_LOST_GRACE_MS = 380;
     const RELEASE_STABLE_FRAMES = 3;
+    const OFFSCREEN_RESET_MARGIN = 80;
     const GRAVITY = 0.35;
     const AIR_DRAG = 0.995;
     const GROUND_DRAG = 0.9;
@@ -846,6 +847,16 @@
       ball.vx = 0;
       ball.vy = 0;
       syncBallMesh(ball);
+    }
+
+    function recoverFallenBalls() {
+      const offscreenY = -height * 0.5 - OFFSCREEN_RESET_MARGIN;
+      for (const ball of balls) {
+        if (ball.id === heldBallId) continue;
+        if (ball.y >= offscreenY) continue;
+        triggerMissFeedback();
+        resetBallToSource(ball);
+      }
     }
 
     function updateHud(prompt) {
@@ -1736,6 +1747,7 @@
       if (gameStarted && !gameOver) {
         await updateHand();
         simulatePhysics();
+        recoverFallenBalls();
         finalizePendingSuccess();
         armCatch();
         grabBall();
