@@ -985,21 +985,25 @@
       }
 
       const bucketHeight = Math.max(220, Math.floor(height * 0.32));
+      const isLevel3 = level >= 3;
       const topY = toWorldY(height * 0.71);
       // Raise lower-row buckets so labels remain visible near the bottom edge.
-      const lowY = toWorldY(height * (level >= 3 ? 0.74 : 0.76));
+      const lowY = toWorldY(height * (isLevel3 ? 0.74 : 0.76));
+      // In Level 3, keep all 4 buckets on one evenly spaced row.
+      const level3Y = toWorldY(height * 0.74);
+      const sourceX = toWorldX(width * (isLevel3 ? 0.12 : 0.14));
       // Keep clearer horizontal gaps for the 3-color row in Level 3.
-      const blueX = toWorldX(width * (level >= 3 ? 0.30 : 0.37));
-      const greenX = toWorldX(width * 0.50);
-      const redX = toWorldX(width * (level >= 3 ? 0.70 : 0.63));
+      const blueX = toWorldX(width * (isLevel3 ? 0.37 : 0.37));
+      const greenX = toWorldX(width * (isLevel3 ? 0.62 : 0.50));
+      const redX = toWorldX(width * (isLevel3 ? 0.87 : 0.63));
       const rTop = Math.max(90, Math.floor(width * 0.08));
       const rBottom = Math.max(74, Math.floor(width * 0.065));
 
       buckets = {
         source: {
           name: "Mixed Bucket",
-          cx: toWorldX(width * 0.14),
-          cy: topY,
+          cx: sourceX,
+          cy: isLevel3 ? level3Y : topY,
           radiusTop: rTop,
           radiusBottom: rBottom,
           innerRadiusTop: rTop - 16,
